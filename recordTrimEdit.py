@@ -136,7 +136,7 @@ def drawWaveforms(screen):
         chunk = sound_chunks[i]
 
         audio_array = np.frombuffer(chunk, dtype=np.int16)
-        audio_array.reshape((audio_array.size,))
+        audio_array.reshape((882))
         h = np.amax(np.abs(audio_array))*0.07
 
         if k < len(keyframes) and i >= keyframes[k]:
