@@ -52,7 +52,18 @@ pg.init()
 
 # init_subsystem(INIT_AUDIO)
 names = get_audio_device_names(True)
-mic_index = 1 #int(input(f"Which microphone to use? (index): {names}\n"))
+
+# Simple terminal menu to select microphone
+print("")
+for index, element in enumerate(names):
+    print(f"{index+1}. {element}")
+while True:
+    mic_index = input("\nEnter the number corresponding to the microphone you want to use: ")
+    
+    if mic_index.isdigit():
+        mic_index = int(mic_index) - 1
+        if 0 <= mic_index < len(names):
+            break
 
 sounds = []
 sound_chunks = []
@@ -125,7 +136,7 @@ def drawWaveforms(screen):
         chunk = sound_chunks[i]
 
         audio_array = np.frombuffer(chunk, dtype=np.int16)
-        audio_array.reshape((882))
+        audio_array.reshape((audio_array.size,))
         h = np.amax(np.abs(audio_array))*0.07
 
         if k < len(keyframes) and i >= keyframes[k]:
