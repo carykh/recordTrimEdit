@@ -135,7 +135,7 @@ def drawWaveforms(screen):
         if k >= len(keyframes):
             COLOR = [0,0,0]
             if listening and i-listening_edges[0] < age:
-                COLOR = [0,128,255]
+                COLOR = [20,140,255]
             if i >= len(sound_chunks)-m:
                 COLOR = [255,0,0]
             if i < start_pointer or i >= end_pointer:
@@ -163,15 +163,23 @@ def drawTranscript(screen):
         screen.blit(text_surface, (40,480+y*30))
 
     infos = [["Left: reject snippet", "Down: listen to snippet", "Right: approve snippet"],["Enter: Instantly save (at the end)", "Left-left: Delete previous snippet","Left-down: Listen to previous snippet"],["Writing to "+destination,"",""]]
+    xs = [20,280,650]
     for i in range(len(infos)):
         for j in range(len(infos[i])):
             text_surface = small_font.render(infos[i][j], False, (0, 0, 0))
-            screen.blit(text_surface, (30+300*i,15+18*j))
+            screen.blit(text_surface, (xs[i],12+22*j))
+
+def stopListening():
+    global listening
+    global sound
+    listening = False
+    if sound is not None:
+        sound.set_volume(0.0)
 
 
 screen = pg.display.set_mode([1000, 600])
 my_font = pg.font.SysFont('Arial', 26)
-small_font = pg.font.SysFont('Arial', 16)
+small_font = pg.font.SysFont('Arial', 20)
 sound = None
 # Run until the user asks to quit
 running = True
@@ -183,8 +191,7 @@ while running:
 
         if event.type == pg.KEYDOWN:
             if event.key == keys[0]: # reject audio
-                listening = False
-                sound.set_volume(0.0)
+                stopListening()
                 if len(keyframes) >= 2 and keyframes[-1] >= len(sound_chunks)-m:
                     keyframes.pop()
                 sound_chunks = sound_chunks[0:keyframes[-1]]
@@ -207,8 +214,7 @@ while running:
                     sound.set_volume(1.0)
 
             if event.key == keys[2]: # approve audio
-                listening = False
-                sound.set_volume(0.0)
+                stopListening()
                 removeSilentEnds()
                 keyframes.append(int(len(sound_chunks)))
                 if len(keyframes) >= len(transcript):
