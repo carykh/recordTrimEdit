@@ -42,6 +42,14 @@ if len(sys.argv) >= 2:
     f = open(filename,"r+",encoding="utf-8")
     transcript = f.read().split("\n")
     f.close()
+elif len(transcript) == 0:
+    # Load default file when transcript is empty
+    filename = "rte_test_transcript.txt"
+    f = open(filename,"r+",encoding="utf-8")
+    transcript = f.read().split("\n")
+    f.close()
+
+
 destination = "output.wav"
 if len(sys.argv) >= 3:
     destination = sys.argv[2]
