@@ -1,5 +1,5 @@
 # Source: https://github.com/pygame/pygame/blob/main/examples/audiocapture.py
-
+import json
 import pygame as pg
 import time
 import io
@@ -15,15 +15,25 @@ from pygame._sdl2 import (
 )
 from pygame._sdl2.mixer import set_post_mix
 
-CHUNK_RATE = 50
-SAMPLE_RATE = 44100
+
+def load_config(filename):
+    with open(filename, 'r') as f:
+        config = json.load(f)
+    return config
+
+config = load_config('./config.json')
+
+CHUNK_RATE = config['CHUNK_RATE']
+SAMPLE_RATE = config['SAMPLE_RATE']
 CHUNK_SIZE = SAMPLE_RATE//CHUNK_RATE
-MARGIN = 0.25 # length of wiggle room at the start and end of sections that is not included (e.g. keyboard tapping sounds)
-THRESHOLD = 200
+MARGIN = config['MARGIN'] # length of wiggle room at the start and end of sections that is not included (e.g. keyboard tapping sounds)
+THRESHOLD = config['THRESHOLD']
+MIC_INDEX = config['MIC_INDEX'] # Which microphone to use.
+
 m = int(MARGIN*CHUNK_RATE)
 keys = [pg.K_LEFT, pg.K_DOWN, pg.K_RIGHT, pg.K_RETURN]
-# reject, listen, approve, instant save .wav file
 
+# reject, listen, approve, instant save .wav file
 listening = False
 listening_timestamp = 0
 listening_edges = None
@@ -52,13 +62,11 @@ pg.init()
 
 # init_subsystem(INIT_AUDIO)
 names = get_audio_device_names(True)
-mic_index = 1 #int(input(f"Which microphone to use? (index): {names}\n"))
-
 sounds = []
 sound_chunks = []
 
 audio = AudioDevice(
-    devicename=names[mic_index],
+    devicename=names[MIC_INDEX],
     iscapture=True,
     frequency=SAMPLE_RATE,
     audioformat=AUDIO_S16,
