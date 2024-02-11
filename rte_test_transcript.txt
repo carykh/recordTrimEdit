@@ -1,0 +1,8 @@
+Test Transcript! Read aloud these lines, one by one.
+Are you ready for the next line?
+The quick brown fox jumps over the lazy dog.
+Snowball. The safety margins are 0.25 seconds.
+Lorem ipsum.
+Try adding a long pause ... in between these two sections!
+Never gonna give you up!
+This concludes the test.
