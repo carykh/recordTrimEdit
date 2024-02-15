@@ -12,6 +12,4 @@ Usage:
 python recordTrimEdit.py YOUR_TRANSCRIPT_FILE.txt YOUR_OUTPUT.wav
 ```
 
-If the window opens but doesn't appear to be recording anything, try changing the `mic_index` to some other value!
-
 Glorp your way to paradise with this code
