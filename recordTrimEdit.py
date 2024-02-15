@@ -42,6 +42,10 @@ if len(sys.argv) >= 2:
     f = open(filename,"r+",encoding="utf-8")
     transcript = f.read().split("\n")
     f.close()
+else:
+    print("No transcript file given.")
+    print("Usage: python recordTrimEdit.py transcript.txt [output.wav]")
+    sys.exit(1)
 destination = "output.wav"
 if len(sys.argv) >= 3:
     destination = sys.argv[2]
