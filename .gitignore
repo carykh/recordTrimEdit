@@ -1,0 +1,5 @@
+venv/
+**/.DS_Store
+
+audio_device
+*.wav
