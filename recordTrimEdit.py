@@ -11,6 +11,8 @@ from pygame._sdl2 import (
     AUDIO_S16,
     AUDIO_ALLOW_FORMAT_CHANGE,
 )
+import pygame_widgets
+from pygame_widgets.dropdown import Dropdown
 
 CHUNK_RATE = 50
 SAMPLE_RATE = 44100
@@ -53,7 +55,20 @@ pg.init()
 
 # init_subsystem(INIT_AUDIO)
 names = get_audio_device_names(True)
-mic_index = 1 #int(input(f"Which microphone to use? (index): {names}\n"))
+
+mic_index = 0
+try:
+    f = open("audio_device")
+    mic_index = int(f.read())
+    if mic_index >= len(names):
+        mic_index = 0
+    f.close()
+except:
+    pass
+
+if len(names) == 0:
+    print("No audio devices found! Make sure your microphone is connected and recognized by your system.")
+    sys.exit(1)
 
 sounds = []
 sound_chunks = []
@@ -160,14 +175,14 @@ def drawTranscript(screen):
 
         if y == 0:
             pg.draw.rect(screen, (255,255,0), pg.Rect(20,480,1000,30))
-        text_surface = my_font.render(stri, False, (0, 0, 0))
+        text_surface = my_font.render(stri, True, (0, 0, 0))
         screen.blit(text_surface, (40,480+y*30))
 
     infos = [["Left: reject snippet", "Down: listen to snippet", "Right: approve snippet"],["Enter: Instantly save (at the end)", "Left-left: Delete previous snippet","Left-down: Listen to previous snippet"],["Writing to "+destination,"",""]]
     xs = [20,280,650]
     for i in range(len(infos)):
         for j in range(len(infos[i])):
-            text_surface = small_font.render(infos[i][j], False, (0, 0, 0))
+            text_surface = small_font.render(infos[i][j], True, (0, 0, 0))
             screen.blit(text_surface, (xs[i],12+22*j))
 
 def stopListening():
@@ -184,9 +199,55 @@ small_font = pg.font.SysFont('Arial', 20)
 sound = None
 # Run until the user asks to quit
 running = True
+
+def update_audio_device(*args):
+    global dropdown
+    global audio
+    global mic_index
+
+    if dropdown.getSelected() is None or dropdown.getSelected() == mic_index:
+        return
+
+    print("Update")
+    mic_index = dropdown.getSelected()
+    audio.pause(1)
+    audio.close()
+    audio = AudioDevice(
+        devicename=names[mic_index],
+        iscapture=True,
+        frequency=SAMPLE_RATE,
+        audioformat=AUDIO_S16,
+        numchannels=1,
+        chunksize=CHUNK_SIZE,
+        allowed_changes=AUDIO_ALLOW_FORMAT_CHANGE,
+        callback=callback,
+    )
+    audio.pause(0)
+
+    try:
+        f = open("audio_device","w")
+        f.write(str(mic_index))
+        f.close()
+    except:
+        pass
+
+dropdown = Dropdown(
+    screen,
+    650, 45, 300, 25,
+    name='Select Audio Device',
+    choices=names,
+    borderRadius=3,
+    colour=pg.Color(208, 208, 208),
+    values=range(len(names)),
+    direction='down',
+    textHAlign='left'
+)
+
+
 while running:
     # Did the user click the window close button?
-    for event in pg.event.get():
+    events = pg.event.get()
+    for event in events:
         if event.type == pg.QUIT:
             running = False
 
@@ -230,6 +291,10 @@ while running:
     drawBackground(screen)
     drawWaveforms(screen)
     drawTranscript(screen)
+    dropdown.draw()
+    update_audio_device()
+
+    pygame_widgets.update(events)
     pg.display.flip()
 
 audio_full = np.zeros((0))
