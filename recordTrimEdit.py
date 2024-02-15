@@ -42,20 +42,12 @@ def read_config():
 
 config = read_config()
 
-def update_config(**kwargs):
+def update_config(kwargs):
     global config
     for key, value in kwargs.items():
         config[key] = value
     with open(config_filename, 'w') as f:
         json.dump(config, f, indent=4)
-    
-# Assign values from configuration
-CHUNK_RATE = config['CHUNK_RATE']
-SAMPLE_RATE = config['SAMPLE_RATE']
-CHUNK_SIZE = SAMPLE_RATE//CHUNK_RATE
-MARGIN = config['MARGIN'] # length of wiggle room at the start and end of sections that is not included (e.g. keyboard tapping sounds)
-THRESHOLD = config['THRESHOLD']
-MIC_INDEX = config['MIC_INDEX'] # Which microphone to use.
 
 m = int(config['MARGIN']*config['CHUNK_RATE'])
 keys = [pg.K_LEFT, pg.K_DOWN, pg.K_RIGHT, pg.K_RETURN]
