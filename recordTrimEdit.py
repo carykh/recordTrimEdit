@@ -2,10 +2,8 @@
 
 import pygame as pg
 import time
-import io
-import soundfile as sf
 import numpy as np
-from scipy.io.wavfile import read, write
+from scipy.io.wavfile import write
 import sys
 from pygame._sdl2 import (
     get_audio_device_names,
@@ -13,7 +11,6 @@ from pygame._sdl2 import (
     AUDIO_S16,
     AUDIO_ALLOW_FORMAT_CHANGE,
 )
-from pygame._sdl2.mixer import set_post_mix
 
 CHUNK_RATE = 50
 SAMPLE_RATE = 44100
