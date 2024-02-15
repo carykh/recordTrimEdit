@@ -1,5 +1,5 @@
 # Source: https://github.com/pygame/pygame/blob/main/examples/audiocapture.py
-
+import json
 import pygame as pg
 import time
 import numpy as np
@@ -14,15 +14,45 @@ from pygame._sdl2 import (
 import pygame_widgets
 from pygame_widgets.dropdown import Dropdown
 
-CHUNK_RATE = 50
-SAMPLE_RATE = 44100
-CHUNK_SIZE = SAMPLE_RATE//CHUNK_RATE
-MARGIN = 0.25 # length of wiggle room at the start and end of sections that is not included (e.g. keyboard tapping sounds)
-THRESHOLD = 200
-m = int(MARGIN*CHUNK_RATE)
-keys = [pg.K_LEFT, pg.K_DOWN, pg.K_RIGHT, pg.K_RETURN]
-# reject, listen, approve, instant save .wav file
+# Default parameters
+config_filename = "config.json"
+default_chunk_rate = 50
+default_sample_rate = 44100
+default_margin = 0.25
+default_threshold = 200
+default_mic_index = 0
 
+def read_config():
+    try:
+        with open(config_filename, 'r') as f:
+            config = json.load(f)
+    except FileNotFoundError:
+        # If file is not found, create it with default parameters
+        config = {
+            'CHUNK_RATE': default_chunk_rate,
+            'SAMPLE_RATE': default_sample_rate,
+            'MARGIN': default_margin,
+            'THRESHOLD': default_threshold,
+            'MIC_INDEX': default_mic_index
+        }
+        with open(config_filename, 'w') as f:
+            json.dump(config, f, indent=4)
+    
+    return config
+
+config = read_config()
+
+def update_config(kwargs):
+    global config
+    for key, value in kwargs.items():
+        config[key] = value
+    with open(config_filename, 'w') as f:
+        json.dump(config, f, indent=4)
+
+m = int(config['MARGIN']*config['CHUNK_RATE'])
+keys = [pg.K_LEFT, pg.K_DOWN, pg.K_RIGHT, pg.K_RETURN]
+
+# reject, listen, approve, instant save .wav file
 listening = False
 listening_timestamp = 0
 listening_edges = None
@@ -50,36 +80,24 @@ if len(sys.argv) >= 3:
     destination = sys.argv[2]
 
 
-pg.mixer.pre_init(SAMPLE_RATE, 32, 1, CHUNK_SIZE)
+pg.mixer.pre_init(config['SAMPLE_RATE'], 32, 1, config['SAMPLE_RATE']//config['CHUNK_RATE'])
 pg.init()
 
 # init_subsystem(INIT_AUDIO)
 names = get_audio_device_names(True)
-
-mic_index = 0
-try:
-    f = open("audio_device")
-    mic_index = int(f.read())
-    if mic_index >= len(names):
-        mic_index = 0
-    f.close()
-except:
-    pass
-
-if len(names) == 0:
-    print("No audio devices found! Make sure your microphone is connected and recognized by your system.")
-    sys.exit(1)
+if config['MIC_INDEX'] >= len(names):
+    update_config({'MIC_INDEX': 0})
 
 sounds = []
 sound_chunks = []
 
 audio = AudioDevice(
-    devicename=names[mic_index],
+    devicename=names[config['MIC_INDEX']],
     iscapture=True,
-    frequency=SAMPLE_RATE,
+    frequency=config['SAMPLE_RATE'],
     audioformat=AUDIO_S16,
     numchannels=1,
-    chunksize=CHUNK_SIZE,
+    chunksize=config['SAMPLE_RATE']//config['CHUNK_RATE'],
 
     allowed_changes=AUDIO_ALLOW_FORMAT_CHANGE,
     callback=callback,
@@ -100,10 +118,10 @@ def getEdges():
         return 0,0
 
     start_pointer = min(len(sound_chunks)-1, keyframes[-1]+m)
-    while loudness_bytes(sound_chunks[start_pointer]) <= THRESHOLD and start_pointer < len(sound_chunks)-1:
+    while loudness_bytes(sound_chunks[start_pointer]) <= config['THRESHOLD'] and start_pointer < len(sound_chunks)-1:
         start_pointer += 1
     end_pointer = max(0, len(sound_chunks)-m)
-    while loudness_bytes(sound_chunks[end_pointer-1]) <= THRESHOLD and end_pointer >= 1:
+    while loudness_bytes(sound_chunks[end_pointer-1]) <= config['THRESHOLD'] and end_pointer >= 1:
         end_pointer -= 1
 
     start_pointer = max(keyframes[-1],start_pointer-m)
@@ -124,7 +142,7 @@ def removeSilentEnds():
 
 def saveWav(filename,audio):
     scaled = np.int16(audio / np.max(np.abs(audio)) * 32767)
-    write(filename, SAMPLE_RATE, scaled)
+    write(filename, config['SAMPLE_RATE'], scaled)
 
 def drawBackground(screen):
     screen.fill((255, 255, 255))
@@ -134,7 +152,7 @@ def drawWaveforms(screen):
     start_pointer, end_pointer = getEdges()
 
     if listening:
-        age = (time.time()-listening_timestamp)*CHUNK_RATE
+        age = (time.time()-listening_timestamp)*config['CHUNK_RATE']
 
     x_offset = min(0,940-len(sound_chunks))
     for i in range(len(sound_chunks)):
@@ -203,33 +221,26 @@ running = True
 def update_audio_device(*args):
     global dropdown
     global audio
-    global mic_index
+    global config
 
-    if dropdown.getSelected() is None or dropdown.getSelected() == mic_index:
+    if dropdown.getSelected() is None or dropdown.getSelected() == config['MIC_INDEX']:
         return
 
     print("Update")
-    mic_index = dropdown.getSelected()
+    update_config({'MIC_INDEX': dropdown.getSelected()})
     audio.pause(1)
     audio.close()
     audio = AudioDevice(
-        devicename=names[mic_index],
+        devicename=names[config['MIC_INDEX']],
         iscapture=True,
-        frequency=SAMPLE_RATE,
+        frequency=config['SAMPLE_RATE'],
         audioformat=AUDIO_S16,
         numchannels=1,
-        chunksize=CHUNK_SIZE,
+        chunksize=config['SAMPLE_RATE']//config['CHUNK_RATE'],
         allowed_changes=AUDIO_ALLOW_FORMAT_CHANGE,
         callback=callback,
     )
     audio.pause(0)
-
-    try:
-        f = open("audio_device","w")
-        f.write(str(mic_index))
-        f.close()
-    except:
-        pass
 
 dropdown = Dropdown(
     screen,

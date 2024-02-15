@@ -1,0 +1,7 @@
+{
+    "CHUNK_RATE": 50,
+    "SAMPLE_RATE": 44100,
+    "MARGIN": 0.25,
+    "THRESHOLD": 200,
+    "MIC_INDEX": 0
+}
