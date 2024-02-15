@@ -15,14 +15,29 @@ from pygame._sdl2 import (
 )
 from pygame._sdl2.mixer import set_post_mix
 
+# Default parameters
+default_chunk_rate = 50
+default_sample_rate = 44100
+default_margin = 0.25
+default_threshold = 200
+default_mic_index = 0
 
-def load_config(filename):
-    with open(filename, 'r') as f:
+try:
+    with open('config.json', 'r') as f:
         config = json.load(f)
-    return config
+except FileNotFoundError:
+    # If file is not found, create it with default parameters
+    config = {
+        'CHUNK_RATE': default_chunk_rate,
+        'SAMPLE_RATE': default_sample_rate,
+        'MARGIN': default_margin,
+        'THRESHOLD': default_threshold,
+        'MIC_INDEX': default_mic_index
+    }
+    with open('config.json', 'w') as f:
+        json.dump(config, f, indent=4)
 
-config = load_config('./config.json')
-
+# Assign values from configuration
 CHUNK_RATE = config['CHUNK_RATE']
 SAMPLE_RATE = config['SAMPLE_RATE']
 CHUNK_SIZE = SAMPLE_RATE//CHUNK_RATE
