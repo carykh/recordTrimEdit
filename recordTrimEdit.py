@@ -13,6 +13,8 @@ from pygame._sdl2 import (
 )
 import pygame_widgets
 from pygame_widgets.dropdown import Dropdown
+from tqdm import tqdm # Progress bar
+from copy import deepcopy
 
 # Default parameters
 config_filename = "config.json"
@@ -308,8 +310,12 @@ while running:
     pygame_widgets.update(events)
     pg.display.flip()
 
+print('Uniting all snippets of audio')
 audio_full = np.zeros((0))
-for chunk in sound_chunks:
+recorded_sound_chunks = deepcopy(sound_chunks)
+for chunk in tqdm(recorded_sound_chunks):
     audio_full = np.append(audio_full,np.frombuffer(chunk, dtype=np.int16))
+
+print('Saving your .wav file')
 
 saveWav(destination,audio_full)
