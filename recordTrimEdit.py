@@ -18,14 +18,49 @@ try:
     argparse_available = True
 except ImportError:
     argparse_available = False
-
-# Default parameters
-config_filename = "config.json"
-default_chunk_rate = 50
-default_sample_rate = 44100
-default_margin = 0.25
-default_threshold = 200
-default_mic_index = 0
+def configManager():
+    # Default parameters
+    config_filename = "config.json"
+    default_chunk_rate = 50
+    default_sample_rate = 44100
+    default_margin = 0.25
+    default_threshold = 200
+    default_mic_index = 0
+    
+    if agrparse_avaliable:
+            # Define command-line arguments
+            parser = argparse.ArgumentParser(description='Record and edit audio snippets.')
+            parser.add_argument('transcript', type=str, help='Transcript file path')
+            parser.add_argument('output', nargs='?', default='output.wav', type=str, help='Output WAV file path (default: output.wav)')
+            parser.add_argument('--config', type=str, default='config.json', help='Config file path (default: config.json)')
+            parser.add_argument('--chunk-rate', type=int, default=default_chunk_rate, help='Chunk rate (default: {})'.format(default_chunk_rate))
+            parser.add_argument('--sample-rate', type=int, default=default_sample_rate, help='Sample rate (default: {})'.format(default_sample_rate))
+            parser.add_argument('--margin', type=float, default=default_margin, help='Margin (default: {})'.format(default_margin))
+            parser.add_argument('--threshold', type=int, default=default_threshold, help='Threshold (default: {})'.format(default_threshold))
+            parser.add_argument('--mic-index', type=int, default=default_mic_index, help='Microphone index (default: {})'.format(default_mic_index))
+            
+            # Parse command-line arguments
+            args = parser.parse_args()
+            
+            # Use command-line arguments
+            config_filename = args.config
+            config = {
+                    'CHUNK_RATE': args.chunk_rate,
+                    'SAMPLE_RATE': args.sample_rate,
+                    'MARGIN': args.margin,
+                    'THRESHOLD': args.threshold,
+                    'MIC_INDEX': args.mic_index
+            }
+        else:
+            config = {
+                    'CHUNK_RATE': 50,
+                    'SAMPLE_RATE': 44100,
+                    'MARGIN': 0.25,
+                    'THRESHOLD': 200,
+                    'MIC_INDEX': 0
+            }
+            with open(config_filename, 'w') as f:
+                json.dump(config, f, indent=4)
     
 def read_config():
     try:
@@ -33,40 +68,7 @@ def read_config():
             config = json.load(f)
     except FileNotFoundError:
         # If file is not found, create it with default parameter.
-        if agrparse_avaliable:
-        # Define command-line arguments
-        parser = argparse.ArgumentParser(description='Record and edit audio snippets.')
-        parser.add_argument('transcript', type=str, help='Transcript file path')
-        parser.add_argument('output', nargs='?', default='output.wav', type=str, help='Output WAV file path (default: output.wav)')
-        parser.add_argument('--config', type=str, default='config.json', help='Config file path (default: config.json)')
-        parser.add_argument('--chunk-rate', type=int, default=default_chunk_rate, help='Chunk rate (default: {})'.format(default_chunk_rate))
-        parser.add_argument('--sample-rate', type=int, default=default_sample_rate, help='Sample rate (default: {})'.format(default_sample_rate))
-        parser.add_argument('--margin', type=float, default=default_margin, help='Margin (default: {})'.format(default_margin))
-        parser.add_argument('--threshold', type=int, default=default_threshold, help='Threshold (default: {})'.format(default_threshold))
-        parser.add_argument('--mic-index', type=int, default=default_mic_index, help='Microphone index (default: {})'.format(default_mic_index))
-        
-        # Parse command-line arguments
-        args = parser.parse_args()
-        
-        # Use command-line arguments
-        config_filename = args.config
-        config = {
-                'CHUNK_RATE': args.chunk_rate,
-                'SAMPLE_RATE': args.sample_rate,
-                'MARGIN': args.margin,
-                'THRESHOLD': args.threshold,
-                'MIC_INDEX': args.mic_index
-        }
-    else:
-        config = {
-                'CHUNK_RATE': 50,
-                'SAMPLE_RATE': 44100,
-                'MARGIN': 0.25,
-                'THRESHOLD': 200,
-                'MIC_INDEX': 0
-        }
-        with open(config_filename, 'w') as f:
-            json.dump(config, f, indent=4)
+        configManager()
 
 return config
 
