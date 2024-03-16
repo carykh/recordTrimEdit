@@ -13,64 +13,73 @@ from pygame._sdl2 import (
     AUDIO_S16,
     AUDIO_ALLOW_FORMAT_CHANGE,
 )
+import argparse
 try:
-    import argparse
+    import pygame_widgets
+    from pygame_widgets.dropdown import Dropdown
+except ImportError:
+    pass
+
+try:
     argparse_available = True
 except ImportError:
     argparse_available = False
+
+config_filename = "config.json"  # Define config_filename globally
+
 def configManager():
     # Default parameters
-    config_filename = "config.json"
     default_chunk_rate = 50
     default_sample_rate = 44100
     default_margin = 0.25
     default_threshold = 200
     default_mic_index = 0
     
-    if agrparse_avaliable:
-            # Define command-line arguments
-            parser = argparse.ArgumentParser(description='Record and edit audio snippets.')
-            parser.add_argument('transcript', type=str, help='Transcript file path')
-            parser.add_argument('output', nargs='?', default='output.wav', type=str, help='Output WAV file path (default: output.wav)')
-            parser.add_argument('--config', type=str, default='config.json', help='Config file path (default: config.json)')
-            parser.add_argument('--chunk-rate', type=int, default=default_chunk_rate, help='Chunk rate (default: {})'.format(default_chunk_rate))
-            parser.add_argument('--sample-rate', type=int, default=default_sample_rate, help='Sample rate (default: {})'.format(default_sample_rate))
-            parser.add_argument('--margin', type=float, default=default_margin, help='Margin (default: {})'.format(default_margin))
-            parser.add_argument('--threshold', type=int, default=default_threshold, help='Threshold (default: {})'.format(default_threshold))
-            parser.add_argument('--mic-index', type=int, default=default_mic_index, help='Microphone index (default: {})'.format(default_mic_index))
-            
-            # Parse command-line arguments
-            args = parser.parse_args()
-            
-            # Use command-line arguments
-            config_filename = args.config
-            config = {
-                    'CHUNK_RATE': args.chunk_rate,
-                    'SAMPLE_RATE': args.sample_rate,
-                    'MARGIN': args.margin,
-                    'THRESHOLD': args.threshold,
-                    'MIC_INDEX': args.mic_index
-            }
-        else:
-            config = {
-                    'CHUNK_RATE': 50,
-                    'SAMPLE_RATE': 44100,
-                    'MARGIN': 0.25,
-                    'THRESHOLD': 200,
-                    'MIC_INDEX': 0
-            }
-            with open(config_filename, 'w') as f:
-                json.dump(config, f, indent=4)
-    
+    if argparse_available:
+        # Define command-line arguments
+        parser = argparse.ArgumentParser(description='Record and edit audio snippets.')
+        parser.add_argument('transcript', type=str, help='Transcript file path')
+        parser.add_argument('output', nargs='?', default='output.wav', type=str, help='Output WAV file path (default: output.wav)')
+        parser.add_argument('--config', type=str, default='config.json', help='Config file path (default: config.json)')
+        parser.add_argument('--chunk-rate', type=int, default=default_chunk_rate, help='Chunk rate (default: {})'.format(default_chunk_rate))
+        parser.add_argument('--sample-rate', type=int, default=default_sample_rate, help='Sample rate (default: {})'.format(default_sample_rate))
+        parser.add_argument('--margin', type=float, default=default_margin, help='Margin (default: {})'.format(default_margin))
+        parser.add_argument('--threshold', type=int, default=default_threshold, help='Threshold (default: {})'.format(default_threshold))
+        parser.add_argument('--mic-index', type=int, default=default_mic_index, help='Microphone index (default: {})'.format(default_mic_index))
+        
+        # Parse command-line arguments
+        args = parser.parse_args()
+        
+        # Use command-line arguments
+        config_filename = args.config
+        config = {
+            'CHUNK_RATE': args.chunk_rate,
+            'SAMPLE_RATE': args.sample_rate,
+            'MARGIN': args.margin,
+            'THRESHOLD': args.threshold,
+            'MIC_INDEX': args.mic_index
+        }
+    else:
+        config = {
+            'CHUNK_RATE': 50,
+            'SAMPLE_RATE': 44100,
+            'MARGIN': 0.25,
+            'THRESHOLD': 200,
+            'MIC_INDEX': 0
+        }
+        with open(config_filename, 'w') as f:
+            json.dump(config, f, indent=4)
+    return config
+
 def read_config():
+    global config_filename  # Access config_filename globally
     try:
         with open(config_filename, 'r') as f:
             config = json.load(f)
     except FileNotFoundError:
-        # If file is not found, create it with default parameter.
-        configManager()
-
-return config
+        # If file is not found, create it with default parameters
+        config = configManager()
+    return config
 
 config = read_config()
 
@@ -94,8 +103,29 @@ def callback(audiodevice, audiomemoryview):
     Note, that the frequency and such you request may not be what you get.
     """
     global listening
+    global sound_chunks
     if not listening:
-        sound_chunks.append(bytes(audiomemoryview))
+        try:
+            # Append the audiomemoryview directly
+            sound_chunks.append(audiomemoryview)
+        except Exception as e:
+            print("Error occurred during audio capture:", e)
+
+def saveWav(filename, audio):
+    # Ensure audio array is not empty
+    if len(audio) == 0:
+        print("Error: No audio data to save.")
+        return
+
+    # Concatenate audio data from sound_chunks
+    audio_full = np.concatenate(audio)
+
+    # Scale audio to int16 range
+    scaled = np.int16(audio_full / np.max(np.abs(audio_full)) * 32767)
+
+    # Save the WAV file
+    write(filename, config['SAMPLE_RATE'], scaled)
+
 
 transcript = []
 if len(sys.argv) >= 2:
@@ -123,17 +153,33 @@ if config['MIC_INDEX'] >= len(names):
 sounds = []
 sound_chunks = []
 
-audio = AudioDevice(
-    devicename=names[config['MIC_INDEX']],
-    iscapture=True,
-    frequency=config['SAMPLE_RATE'],
-    audioformat=AUDIO_S16,
-    numchannels=1,
-    chunksize=config['SAMPLE_RATE']//config['CHUNK_RATE'],
 
-    allowed_changes=AUDIO_ALLOW_FORMAT_CHANGE,
-    callback=callback,
-)
+# Print available audio devices
+print("Available audio devices:", names)
+
+# Verify microphone index
+mic_index = config['MIC_INDEX']
+if mic_index < 0 or mic_index >= len(names):
+    print("Error: Invalid microphone index configured:", mic_index)
+    sys.exit(1)
+
+# Initialize the audio device for recording
+try:
+    # Initialize the audio device for recording
+    audio = AudioDevice(
+        devicename=names[mic_index],
+        iscapture=True,
+        frequency=config['SAMPLE_RATE'],
+        audioformat=AUDIO_S16,
+        numchannels=1,
+        chunksize=config['SAMPLE_RATE'] // config['CHUNK_RATE'],
+        allowed_changes=AUDIO_ALLOW_FORMAT_CHANGE,
+        callback=callback,
+    )
+except Exception as e:
+    print("Error occurred during audio device initialization:", e)
+    sys.exit(1)
+
 
 # start recording.
 keyframes = [0]
@@ -191,7 +237,6 @@ def drawWaveforms(screen):
         chunk = sound_chunks[i]
 
         audio_array = np.frombuffer(chunk, dtype=np.int16)
-        audio_array.reshape((882))
         h = np.amax(np.abs(audio_array))*0.07
 
         if k < len(keyframes) and i >= keyframes[k]:
@@ -214,7 +259,11 @@ def drawWaveforms(screen):
             else:
                 COLOR = [170,170,0]
 
-        pg.draw.rect(screen, COLOR, pg.Rect(i+x_offset, 260-h/2, 1, h))
+        # Draw waveform
+        num_points = len(audio_array)
+        num_draw_points = min(num_points, 882)  # Ensure not to exceed the maximum number of points
+        draw_points = audio_array[:num_draw_points]
+        pg.draw.lines(screen, COLOR, False, [(i+x_offset, 260-h/2) for i in range(num_draw_points)], 1)
 
 def drawTranscript(screen):
     for y in range(-2,3):
