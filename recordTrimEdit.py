@@ -308,8 +308,10 @@ while running:
     pygame_widgets.update(events)
     pg.display.flip()
 
-FULL_LEN = len(sound_chunks)*CHUNK_SIZE
+chunk_size = config['SAMPLE_RATE']//config['CHUNK_RATE']
+
+FULL_LEN = len(sound_chunks)*chunk_size
 audio_full = np.zeros((FULL_LEN))
 for i in range(len(sound_chunks)):
-    audio_full[i*CHUNK_SIZE:i*CHUNK_SIZE+CHUNK_SIZE] = np.frombuffer(sound_chunks[i], dtype=np.int16)
+    audio_full[i*chunk_size:i*chunk_size+chunk_size] = np.frombuffer(sound_chunks[i], dtype=np.int16)
 saveWav(destination,audio_full)
