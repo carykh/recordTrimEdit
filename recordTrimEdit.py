@@ -21,6 +21,8 @@ default_sample_rate = 44100
 default_margin = 0.25
 default_threshold = 200
 default_mic_index = 0
+default_screen_width = 1000
+default_screen_height = 600
 
 def read_config():
     try:
@@ -28,12 +30,15 @@ def read_config():
             config = json.load(f)
     except FileNotFoundError:
         # If file is not found, create it with default parameters
+        print("Warning: no config.json found, creating one using default values")
         config = {
             'CHUNK_RATE': default_chunk_rate,
             'SAMPLE_RATE': default_sample_rate,
             'MARGIN': default_margin,
             'THRESHOLD': default_threshold,
-            'MIC_INDEX': default_mic_index
+            'MIC_INDEX': default_mic_index,
+            "SCREEN_WIDTH": default_screen_width,
+            "SCREEN_HEIGHT": default_screen_height
         }
         with open(config_filename, 'w') as f:
             json.dump(config, f, indent=4)
@@ -182,7 +187,7 @@ def drawWaveforms(screen):
             else:
                 COLOR = [170,170,0]
 
-        pg.draw.rect(screen, COLOR, pg.Rect(i+x_offset, 260-h/2, 1, h))
+        pg.draw.rect(screen, COLOR, pg.Rect(i+x_offset, (config["SCREEN_HEIGHT"]/2)-h/2, 1, h))
 
 def drawTranscript(screen):
     for y in range(-2,3):
@@ -191,10 +196,12 @@ def drawTranscript(screen):
         if line >= 0 and line < len(transcript):
             stri = transcript[line]
 
+        y_start = config["SCREEN_HEIGHT"] * 0.8
+
         if y == 0:
-            pg.draw.rect(screen, (255,255,0), pg.Rect(20,480,1000,30))
+            pg.draw.rect(screen, (255,255,0), pg.Rect(20,y_start,config["SCREEN_WIDTH"]-40,30))
         text_surface = my_font.render(stri, True, (0, 0, 0))
-        screen.blit(text_surface, (40,480+y*30))
+        screen.blit(text_surface, (40,y_start+y*30))
 
     infos = [["Left: reject snippet", "Down: listen to snippet", "Right: approve snippet"],["Enter: Instantly save (at the end)", "Left-left: Delete previous snippet","Left-down: Listen to previous snippet"],["Writing to "+destination,"",""]]
     xs = [20,280,650]
@@ -210,8 +217,7 @@ def stopListening():
     if sound is not None:
         sound.set_volume(0.0)
 
-
-screen = pg.display.set_mode([1000, 600])
+screen = pg.display.set_mode([config['SCREEN_WIDTH'], config['SCREEN_HEIGHT']])
 my_font = pg.font.SysFont('Arial', 26)
 small_font = pg.font.SysFont('Arial', 20)
 sound = None
